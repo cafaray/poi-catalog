@@ -81,7 +81,7 @@ Authorization: Bearer <firebase-id-token>
 1. **Using Firebase REST API:**
 ```bash
 # Sign in with email/password
-curl -X POST 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQJyZ9wC0bT5PK4AcxmI_J4FwVpLwvK68' \
+curl -X POST 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQ...J4FwVpLwvK68' \
   -H 'Content-Type: application/json' \
   -d '{
     "email": "user@example.com",
@@ -169,7 +169,7 @@ curl -X POST http://localhost:8080/v1/auth/login
 ### Firebase Login Example
 ```bash
 # Step 1: Get Firebase ID token
-curl -X POST 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQJyZ9wC0bT5PK4AcxmI_J4FwVpLwvK68' \
+curl -X POST 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQ...J4FwVpLwvK68' \
   -H 'Content-Type: application/json' \
   -d '{
     "email": "user@example.com",
