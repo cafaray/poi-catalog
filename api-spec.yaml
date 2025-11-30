@@ -1,0 +1,881 @@
+openapi: 3.2.0
+info:
+  title: POI Catalog API
+  description: Minimal API for managing Points of Interest with multimedia content
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: https://staging-api.example.com/v1
+    description: Staging server
+
+# SECURITY SCHEME - Firebase Bearer Token Authentication
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase ID token for authentication
+
+  # REUSABLE SCHEMAS
+  schemas:
+    # ERROR SCHEMAS
+    Error:
+      type: object
+      required:
+        - success
+        - error
+        - code
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: object
+          description: Additional error context
+        request_id:
+          type: string
+          description: Unique identifier for troubleshooting
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            validation_errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+                  code:
+                    type: string
+
+    # SUCCESS RESPONSE SCHEMA
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          description: Response data
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          properties:
+            total:
+              type: integer
+            page:
+              type: integer
+            has_more:
+              type: boolean
+
+    # POI SCHEMAS
+    POICreate:
+      type: object
+      required:
+        - name
+        - latitude
+        - longitude
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "Eiffel Tower"
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          example: 48.8584
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          example: 2.2945
+        type:
+          type: string
+          enum: [monument, museum, park, restaurant, hotel, landmark, historical, religious, natural, other]
+          example: monument
+        description:
+          type: string
+          maxLength: 1000
+          example: "Iconic iron tower in Paris"
+        address:
+          type: string
+          maxLength: 500
+          example: "Champ de Mars, 5 Avenue Anatole France, 75007 Paris"
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+          example: ["landmark", "historical", "architecture"]
+
+    POIUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        type:
+          type: string
+          enum: [monument, museum, park, restaurant, hotel, landmark, historical, religious, natural, other]
+        description:
+          type: string
+          maxLength: 1000
+        address:
+          type: string
+          maxLength: 500
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+
+    POIResponse:
+      type: object
+      required:
+        - id
+        - name
+        - latitude
+        - longitude
+        - type
+        - metadata
+      properties:
+        id:
+          type: string
+          example: "poi_abc123"
+        name:
+          type: string
+          example: "Eiffel Tower"
+        latitude:
+          type: number
+          example: 48.8584
+        longitude:
+          type: number
+          example: 2.2945
+        type:
+          type: string
+          example: "monument"
+        description:
+          type: string
+          example: "Iconic iron tower in Paris"
+        address:
+          type: string
+          example: "Champ de Mars, Paris"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["landmark", "historical"]
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaItem'
+        metadata:
+          type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            verified:
+              type: boolean
+            source:
+              type: string
+              enum: [manual_curation, bulk_import, api_sync]
+
+    # MEDIA SCHEMAS
+    MediaUpload:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [image, video]
+          example: image
+        caption:
+          type: string
+          maxLength: 255
+          example: "Eiffel Tower at sunset"
+
+    MediaItem:
+      type: object
+      required:
+        - id
+        - type
+        - url
+        - uploaded_at
+      properties:
+        id:
+          type: string
+          example: "media_xyz789"
+        type:
+          type: string
+          enum: [image, video]
+        url:
+          type: string
+          format: uri
+          example: "https://storage.googleapis.com/bucket/poi_abc123/image.jpg"
+        thumbnail_url:
+          type: string
+          format: uri
+          example: "https://storage.googleapis.com/bucket/poi_abc123/image_thumb.jpg"
+        caption:
+          type: string
+        file_size:
+          type: integer
+          description: "File size in bytes"
+        dimensions:
+          type: object
+          properties:
+            width:
+              type: integer
+            height:
+              type: integer
+        uploaded_at:
+          type: string
+          format: date-time
+
+    # BULK OPERATION SCHEMAS
+    BulkPOICreate:
+      type: object
+      required:
+        - pois
+      properties:
+        pois:
+          type: array
+          items:
+            $ref: '#/components/schemas/POICreate'
+          maxItems: 100
+
+    BulkImportResult:
+      type: object
+      properties:
+        created:
+          type: integer
+        failed:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: [created, failed]
+              id:
+                type: string
+              error:
+                type: string
+
+    # PAGINATION SCHEMAS
+    PaginatedPOIResponse:
+      type: object
+      properties:
+        pois:
+          type: array
+          items:
+            $ref: '#/components/schemas/POIResponse'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            total_pages:
+              type: integer
+            has_next:
+              type: boolean
+            has_prev:
+              type: boolean
+
+  # REUSABLE PARAMETERS
+  parameters:
+    POIId:
+      name: poiId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^poi_[a-zA-Z0-9_-]+$'
+      description: Unique POI identifier
+
+    MediaId:
+      name: mediaId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^media_[a-zA-Z0-9_-]+$'
+      description: Unique media identifier
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number for pagination
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Number of items per page
+
+  # REUSABLE RESPONSES
+  responses:
+    Unauthorized:
+      description: Authorization token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            MissingToken:
+              summary: Authorization token missing
+              value:
+                success: false
+                error: "Authorization token is required"
+                code: "UNAUTHORIZED"
+                timestamp: "2024-01-15T10:00:00Z"
+            InvalidToken:
+              summary: Invalid or expired token
+              value:
+                success: false
+                error: "Invalid or expired token"
+                code: "INVALID_TOKEN"
+                timestamp: "2024-01-15T10:00:00Z"
+
+    Forbidden:
+      description: User does not have permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Insufficient permissions"
+            code: "FORBIDDEN"
+            timestamp: "2024-01-15T10:00:00Z"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "POI not found"
+            code: "NOT_FOUND"
+            timestamp: "2024-01-15T10:00:00Z"
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            success: false
+            error: "Request validation failed"
+            code: "VALIDATION_ERROR"
+            timestamp: "2024-01-15T10:00:00Z"
+            validation_errors:
+              - field: "latitude"
+                message: "Must be between -90 and 90"
+                code: "INVALID_RANGE"
+              - field: "name"
+                message: "Name is required"
+                code: "REQUIRED_FIELD"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Internal server error"
+            code: "INTERNAL_ERROR"
+            timestamp: "2024-01-15T10:00:00Z"
+            request_id: "req_123456"
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Rate limit exceeded"
+            code: "RATE_LIMIT_EXCEEDED"
+            timestamp: "2024-01-15T10:00:00Z"
+
+# SECURITY - Apply Bearer token to all endpoints
+security:
+  - BearerAuth: []
+
+paths:
+  # AUTHENTICATION ENDPOINTS
+  /auth/info:
+    get:
+      summary: Get authentication information
+      description: Returns information about authentication requirements
+      tags:
+        - Authentication
+      security: []
+      responses:
+        '200':
+          description: Authentication info retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                data:
+                  authMethod: "Firebase Authentication"
+                  tokenType: "Bearer"
+                  headerFormat: "Authorization: Bearer <firebase-id-token>"
+                  documentation: "https://firebase.google.com/docs/auth/admin/verify-id-tokens"
+                timestamp: "2024-01-15T10:00:00Z"
+
+  /auth/login:
+    post:
+      summary: Login information
+      description: Returns instructions for Firebase authentication
+      tags:
+        - Authentication
+      security: []
+      responses:
+        '200':
+          description: Login instructions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                data:
+                  message: "Use Firebase Authentication SDK to obtain ID token"
+                  instructions: "Send POST request to Firebase Auth REST API with email/password"
+                timestamp: "2024-01-15T10:00:00Z"
+
+  # POI MANAGEMENT ENDPOINTS
+  /pois:
+    post:
+      summary: Create a new POI
+      description: Create a new Point of Interest with minimal required information
+      tags:
+        - POIs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/POICreate'
+      responses:
+        '201':
+          description: POI created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/POIResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      summary: List all POIs
+      description: Get paginated list of all Points of Interest
+      tags:
+        - POIs
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [monument, museum, park, restaurant, hotel, landmark, historical, religious, natural, other]
+          description: Filter by POI type
+        - name: verified
+          in: query
+          schema:
+            type: boolean
+          description: Filter by verification status
+      responses:
+        '200':
+          description: POIs retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedPOIResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /pois/{poiId}:
+    parameters:
+      - $ref: '#/components/parameters/POIId'
+    get:
+      summary: Get specific POI
+      description: Get detailed information about a specific POI
+      tags:
+        - POIs
+      responses:
+        '200':
+          description: POI retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/POIResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update POI
+      description: Update an existing Point of Interest
+      tags:
+        - POIs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/POIUpdate'
+      responses:
+        '200':
+          description: POI updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/POIResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete POI
+      description: Delete a Point of Interest and all associated media
+      tags:
+        - POIs
+      responses:
+        '200':
+          description: POI deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+          examples:
+            Success:
+              value:
+                success: true
+                data: null
+                timestamp: "2024-01-15T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # MEDIA MANAGEMENT ENDPOINTS
+  /pois/{poiId}/media:
+    parameters:
+      - $ref: '#/components/parameters/POIId'
+    post:
+      summary: Upload media for POI
+      description: Upload images or videos for a specific POI
+      tags:
+        - Media
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - type
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image or video file (max 50MB)
+                type:
+                  type: string
+                  enum: [image, video]
+                  example: image
+                caption:
+                  type: string
+                  maxLength: 255
+      responses:
+        '201':
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MediaItem'
+        '400':
+          description: Bad request - invalid file or type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: "Invalid file type. Allowed: JPEG, PNG, MP4, MOV"
+                code: "INVALID_FILE_TYPE"
+                timestamp: "2024-01-15T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: "File size exceeds maximum limit of 50MB"
+                code: "FILE_TOO_LARGE"
+                timestamp: "2024-01-15T10:00:00Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /pois/{poiId}/media/{mediaId}:
+    parameters:
+      - $ref: '#/components/parameters/POIId'
+      - $ref: '#/components/parameters/MediaId'
+    delete:
+      summary: Delete media from POI
+      description: Remove a specific media item from a POI
+      tags:
+        - Media
+      responses:
+        '200':
+          description: Media deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # BULK OPERATIONS
+  /pois/bulk-import:
+    post:
+      summary: Bulk import POIs
+      description: Import multiple POIs in a single request (max 100 per request)
+      tags:
+        - Bulk Operations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkPOICreate'
+      responses:
+        '201':
+          description: Bulk import completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BulkImportResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Too many POIs in request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: "Maximum 100 POIs allowed per bulk import"
+                code: "BULK_LIMIT_EXCEEDED"
+                timestamp: "2024-01-15T10:00:00Z"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # SEARCH ENDPOINT
+  /pois/search:
+    get:
+      summary: Search POIs
+      description: Search POIs by various criteria including geographic location
+      tags:
+        - Search
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: lat
+          in: query
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+          description: Center latitude for geographic search
+        - name: lng
+          in: query
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+          description: Center longitude for geographic search
+        - name: radius
+          in: query
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 50000
+            default: 1000
+          description: Search radius in meters
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Text search query
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+          description: Filter by tags (comma-separated)
+      responses:
+        '200':
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedPOIResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'

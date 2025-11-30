@@ -1,0 +1,506 @@
+{
+	"info": {
+		"name": "POI Catalog API",
+		"description": "Collection for testing POI Catalog API with Firebase Authentication",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{firebase_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/v1",
+			"type": "string"
+		},
+		{
+			"key": "firebase_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "poi_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "media_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Firebase Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('firebase_token', response.idToken);",
+									"    console.log('Token saved:', response.idToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"returnSecureToken\": true\n}"
+						},
+						"url": {
+							"raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQJyZ9wC0bT5PK4AcxmI_J4FwVpLwvK68",
+							"protocol": "https",
+							"host": [
+								"identitytoolkit",
+								"googleapis",
+								"com"
+							],
+							"path": [
+								"v1",
+								"accounts:signInWithPassword"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "AIzaSyCQJyZ9wC0bT5PK4AcxmI_J4FwVpLwvK68"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Auth Info",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/info",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"info"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Instructions",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "POI Management",
+			"item": [
+				{
+					"name": "Create POI",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('poi_id', response.data.id);",
+									"    console.log('POI ID saved:', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Eiffel Tower\",\n  \"latitude\": 48.8584,\n  \"longitude\": 2.2945,\n  \"type\": \"monument\",\n  \"description\": \"Iconic iron tower in Paris\",\n  \"address\": \"Champ de Mars, Paris\",\n  \"tags\": [\"landmark\", \"historical\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/pois",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List POIs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/pois?page=1&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "type",
+									"value": "monument",
+									"disabled": true
+								},
+								{
+									"key": "verified",
+									"value": "true",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get POI by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/pois/{{poi_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois",
+								"{{poi_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update POI",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Eiffel Tower\",\n  \"description\": \"Updated description of the iconic tower\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/pois/{{poi_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois",
+								"{{poi_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete POI",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/pois/{{poi_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois",
+								"{{poi_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Search & Bulk",
+			"item": [
+				{
+					"name": "Upload POIs from File",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/pois/upload-file",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois",
+								"upload-file"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search POIs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/pois/search?q=tower&tags=landmark,historical&page=1&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "tower"
+								},
+								{
+									"key": "tags",
+									"value": "landmark,historical"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "lat",
+									"value": "48.8584",
+									"disabled": true
+								},
+								{
+									"key": "lng",
+									"value": "2.2945",
+									"disabled": true
+								},
+								{
+									"key": "radius",
+									"value": "5000",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Import POIs",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"pois\": [\n    {\n      \"name\": \"Statue of Liberty\",\n      \"latitude\": 40.6892,\n      \"longitude\": -74.0445,\n      \"type\": \"landmark\",\n      \"description\": \"Iconic statue in New York\",\n      \"tags\": [\"landmark\", \"historical\"]\n    },\n    {\n      \"name\": \"Big Ben\",\n      \"latitude\": 51.5007,\n      \"longitude\": -0.1246,\n      \"type\": \"monument\",\n      \"description\": \"Famous clock tower in London\",\n      \"tags\": [\"landmark\", \"historical\"]\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/pois/bulk-import",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois",
+								"bulk-import"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Media Management",
+			"item": [
+				{
+					"name": "Upload Media",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('media_id', response.data.id);",
+									"    console.log('Media ID saved:', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "type",
+									"value": "image",
+									"type": "text"
+								},
+								{
+									"key": "caption",
+									"value": "Beautiful view of the tower",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/pois/{{poi_id}}/media",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois",
+								"{{poi_id}}",
+								"media"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Media",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/pois/{{poi_id}}/media/{{media_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pois",
+								"{{poi_id}}",
+								"media",
+								"{{media_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/q/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"q",
+								"health"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
