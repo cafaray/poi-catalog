@@ -73,7 +73,7 @@
 							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"returnSecureToken\": true\n}"
 						},
 						"url": {
-							"raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQJyZ9wC0bT5PK4AcxmI_J4FwVpLwvK68",
+							"raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCQ...J4FwVpLwvK68",
 							"protocol": "https",
 							"host": [
 								"identitytoolkit",
@@ -87,7 +87,7 @@
 							"query": [
 								{
 									"key": "key",
-									"value": "AIzaSyCQJyZ9wC0bT5PK4AcxmI_J4FwVpLwvK68"
+									"value": "AIzaSyCQ...J4FwVpLwvK68"
 								}
 							]
 						}
